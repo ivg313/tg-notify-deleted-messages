@@ -97,7 +97,7 @@ async def get_mention_username(user: Entity):
     else:
         mention_username = user.id
 
-    return mention_username
+    return mention_username.strip()
 
 
 def get_on_message_deleted(client: TelegramClient):
@@ -133,7 +133,7 @@ def get_on_message_deleted(client: TelegramClient):
     return on_message_deleted
 
 
-def get_on_message_edited(client: TelegramClient):
+def get_on_message_edited(client: TelegramClient, me_id):
 
     async def on_message_edited(event: MessageEdited.Event):
         messages = load_messages_by_message_ids([event.message.id])
@@ -143,8 +143,6 @@ def get_on_message_edited(client: TelegramClient):
 
         # we only gave one message id, hence we can only get one result
         edited_msg = messages[0]
-
-        log_edited_usernames = []
 
         user = await client.get_entity(edited_msg['message_from_id'])
         mention_username = await get_mention_username(user)
@@ -157,6 +155,23 @@ def get_on_message_edited(client: TelegramClient):
             text += f"**New message**: {event.message.message}\n"
         if edited_msg['message'] and event.message.message:
             await update_message_content(event)
+
+        # We put the following two ifs here because we _do_ want the update in the DB to happen
+        # and only intercept right before send_message is triggered, should either criterion apply
+
+        if me_id == event.message.sender_id:
+            """ Changes that were done by the user ID running this application do not require a notification. """
+            logging.info(f"Skipping edit notification because edit is from application user themselves")
+            return
+
+        if edited_msg['message'] == event.message.message:
+            """ Sometimes we get edit events even though the content has not changed at all.
+                This can happen if a reaction on a message changed.
+                But since this is not a real edit, we don't want to notify in this case.
+            """
+            logging.info(f"Skipping edit notification from user {mention_username} ({str(user.id)}) because "
+                         f"message text did not change")
+            return
 
         await client.send_message(
             "me",

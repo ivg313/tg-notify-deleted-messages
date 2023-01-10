@@ -37,9 +37,12 @@ async def main():
     else:
         new_message_event = events.NewMessage(incoming=True, outgoing=False)
 
+    # We could do this in the event handlers but calling it often is a waste of resources as this does not change
+    me = await client.get_me()
+
     client.add_event_handler(on_new_message, new_message_event)
     client.add_event_handler(get_on_message_deleted(client), events.MessageDeleted())
-    client.add_event_handler(get_on_message_edited(client), events.MessageEdited())
+    client.add_event_handler(get_on_message_edited(client, me.id), events.MessageEdited())
 
     await cycled_clean_old_messages()
 
