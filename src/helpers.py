@@ -3,6 +3,7 @@ import os
 import pickle
 import sqlite3
 import asyncio
+import telethon.sync
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List
@@ -111,7 +112,7 @@ def get_on_message_deleted(client: TelegramClient):
             mention_username = await get_mention_username(user)
 
             log_deleted_usernames.append(f"{mention_username} ({str(user.id)})")
-            text = "🔥🤫🤐🤭🙊🔥 **Deleted message** User: [{username}](tg://user?id={id})\n".format(
+            text = "🤡 **Deleted message** User: [{username}](tg://user?id={id})\n".format(
                 username=mention_username, id=user.id)
 
             if message['message']:
@@ -147,7 +148,7 @@ def get_on_message_edited(client: TelegramClient, me_id):
         user = await client.get_entity(edited_msg['message_from_id'])
         mention_username = await get_mention_username(user)
 
-        text = f"🔄🔄🔄👀👀👀 **Edited message** User: [{mention_username}](tg://user?id={user.id})\n"
+        text = f"🤡 **Edited message** User: [{mention_username}](tg://user?id={user.id})\n"
 
         if edited_msg['message']:
             text += f"**Old message:** {edited_msg['message']}\n"
