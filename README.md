@@ -1,3 +1,8 @@
+# Warning
+DO NOT USE THIS! 
+It's only for testing and learning so far.
+
+
 # About
 
 `tg-notify-deleted-messages` allows you to track messages, which were deleted by
