@@ -3,16 +3,15 @@ import os
 import pickle
 import sqlite3
 import asyncio
-#import telethon.sync
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List
 
 from dotenv import load_dotenv
 from telethon.events import NewMessage, MessageDeleted, MessageEdited
-from telethon import TelegramClient
+from telethon.sync import TelegramClient
 from telethon.hints import Entity
-from telethon.tl.types import Message
+from telethon.tl.types import Message, PeerUser, PeerChat, PeerChannel
 
 CLEAN_OLD_MESSAGES_EVERY_SECONDS = 3600  # 1 hour
 
@@ -89,8 +88,8 @@ def load_messages_by_message_ids(ids: List[int]) -> List[Message]:
 async def get_mention_username(user: Entity):
     if hasattr(user, 'first_name') or hasattr(user,'last_name'):
         mention_username = \
-            (user.first_name + " " if hasattr(user, 'first_name') else "") + \
-            (user.last_name if hasattr(user,'last_name') else "")
+            (user.first_name if getattr(user, 'first_name') is not None else "") + " " +\
+            (user.last_name if getattr(user, 'last_name') is not None else "")
     elif hasattr(user,'username'):
         mention_username = user.username
     elif hasattr(user,'phone'):
@@ -101,7 +100,7 @@ async def get_mention_username(user: Entity):
     return mention_username.strip()
 
 
-def get_on_message_deleted(client: TelegramClient):
+def get_on_message_deleted(client: TelegramClient, chat):
     async def on_message_deleted(event: MessageDeleted.Event):
         messages = load_messages_by_message_ids(event.deleted_ids)
 
@@ -112,14 +111,14 @@ def get_on_message_deleted(client: TelegramClient):
             mention_username = await get_mention_username(user)
 
             log_deleted_usernames.append(f"{mention_username} ({str(user.id)})")
-            text = "🤡 **Deleted message** User: [{username}](tg://user?id={id})\n".format(
+            text = "[{username}](tg://user?id={id}) **deleted** message\n\n".format(
                 username=mention_username, id=user.id)
 
             if message['message']:
-                text += "**Message:** " + message['message']
+                text += message['message']
 
             await client.send_message(
-                "me",
+                chat,
                 text,
                 file=message['media']
             )
@@ -134,7 +133,7 @@ def get_on_message_deleted(client: TelegramClient):
     return on_message_deleted
 
 
-def get_on_message_edited(client: TelegramClient, me_id):
+def get_on_message_edited(client: TelegramClient, me_id, chat):
 
     async def on_message_edited(event: MessageEdited.Event):
         messages = load_messages_by_message_ids([event.message.id])
@@ -145,15 +144,18 @@ def get_on_message_edited(client: TelegramClient, me_id):
         # we only gave one message id, hence we can only get one result
         edited_msg = messages[0]
 
+        await client.get_dialogs()
+
         user = await client.get_entity(edited_msg['message_from_id'])
+        #user = await event.get_sender()
         mention_username = await get_mention_username(user)
 
-        text = f"🤡 **Edited message** User: [{mention_username}](tg://user?id={user.id})\n"
+        text = f"[{mention_username}](tg://user?id={user.id}) **edited** message \n"
 
         if edited_msg['message']:
-            text += f"**Old message:** {edited_msg['message']}\n"
+            text += f" \nOld: {edited_msg['message']}\n"
         if event.message.message:
-            text += f"**New message**: {event.message.message}\n"
+            text += f" \nNew: {event.message.message}\n"
         if edited_msg['message'] and event.message.message:
             await update_message_content(event)
 
@@ -175,7 +177,7 @@ def get_on_message_edited(client: TelegramClient, me_id):
             return
 
         await client.send_message(
-            "me",
+            chat,
             text,
             file=edited_msg['media']
         )

@@ -2,9 +2,8 @@ import logging
 import os
 import pathlib
 import sys
-#import telethon.sync
 
-from telethon import TelegramClient, events
+from telethon.sync import TelegramClient, events
 from helpers import load_env, on_new_message, get_on_message_deleted, get_on_message_edited, cycled_clean_old_messages
 
 BASE_DIR = (pathlib.Path(__file__).parent / '..').absolute()
@@ -38,12 +37,14 @@ async def main():
     else:
         new_message_event = events.NewMessage(incoming=True, outgoing=False)
 
+    chat = os.getenv('GROUP_LINK', 'me')
+
     # We could do this in the event handlers but calling it often is a waste of resources as this does not change
     me = await client.get_me()
 
     client.add_event_handler(on_new_message, new_message_event)
-    client.add_event_handler(get_on_message_deleted(client), events.MessageDeleted())
-    client.add_event_handler(get_on_message_edited(client, me.id), events.MessageEdited())
+    client.add_event_handler(get_on_message_deleted(client, chat), events.MessageDeleted())
+    client.add_event_handler(get_on_message_edited(client, me.id, chat), events.MessageEdited())
 
     await cycled_clean_old_messages()
 
