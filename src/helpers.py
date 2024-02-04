@@ -3,7 +3,7 @@ import os
 import pickle
 import sqlite3
 import asyncio
-import telethon.sync
+#import telethon.sync
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List
@@ -87,13 +87,13 @@ def load_messages_by_message_ids(ids: List[int]) -> List[Message]:
 
 
 async def get_mention_username(user: Entity):
-    if user.first_name or user.last_name:
+    if hasattr(user, 'first_name') or hasattr(user,'last_name'):
         mention_username = \
-            (user.first_name + " " if user.first_name else "") + \
-            (user.last_name if user.last_name else "")
-    elif user.username:
+            (user.first_name + " " if hasattr(user, 'first_name') else "") + \
+            (user.last_name if hasattr(user,'last_name') else "")
+    elif hasattr(user,'username'):
         mention_username = user.username
-    elif user.phone:
+    elif hasattr(user,'phone'):
         mention_username = user.phone
     else:
         mention_username = user.id

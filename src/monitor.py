@@ -2,7 +2,7 @@ import logging
 import os
 import pathlib
 import sys
-import telethon.sync
+#import telethon.sync
 
 from telethon import TelegramClient, events
 from helpers import load_env, on_new_message, get_on_message_deleted, get_on_message_edited, cycled_clean_old_messages
